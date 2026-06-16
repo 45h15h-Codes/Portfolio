@@ -1,0 +1,299 @@
+"use client";
+
+import { useEffect, useRef, useState, useCallback } from "react";
+import DesignEditor from "@/components/editor";
+import type { EditorHandle } from "@/components/editor";
+import { supabase } from "@/lib/supabase";
+
+// ── helpers (same as wall page) ───────────────────────────────────────────────
+
+function getOrCreateFingerprint() {
+  let fp = localStorage.getItem("drawing_fp");
+  if (!fp) {
+    fp = crypto.randomUUID();
+    localStorage.setItem("drawing_fp", fp);
+  }
+  return fp;
+}
+
+function canSubmit() {
+  const last = localStorage.getItem("last_drawing_submit");
+  if (!last) return true;
+  return Date.now() - parseInt(last, 10) > 60_000;
+}
+
+// ── component ─────────────────────────────────────────────────────────────────
+
+export default function EditorClient() {
+  const editorRef = useRef<EditorHandle>(null);
+
+  // How many drawings exist on the wall
+  const [wallCount, setWallCount] = useState<number | null>(null);
+  // Submission state
+  const [submitStatus, setSubmitStatus] = useState<
+    "idle" | "submitting" | "success" | "error" | "cooldown" | "empty"
+  >("idle");
+
+  // Fetch count on mount
+  useEffect(() => {
+    supabase
+      .from("drawings")
+      .select("*", { count: "exact", head: true })
+      .then(({ count }) => setWallCount(count ?? 0));
+  }, []);
+
+  const handleSubmitToWall = useCallback(async () => {
+    const stage = editorRef.current?.getCanvas();
+    if (!stage) return;
+
+    // Check canvas has something on it
+    const dataUrl = stage.toDataURL({ pixelRatio: 2 });
+
+    if (!canSubmit()) {
+      setSubmitStatus("cooldown");
+      setTimeout(() => setSubmitStatus("idle"), 3000);
+      return;
+    }
+
+    setSubmitStatus("submitting");
+    const fingerprint = getOrCreateFingerprint();
+
+    const { error } = await supabase
+      .from("drawings")
+      .insert({ image_data: dataUrl, client_fingerprint: fingerprint });
+
+    if (error) {
+      setSubmitStatus("error");
+      setTimeout(() => setSubmitStatus("idle"), 3000);
+      return;
+    }
+
+    localStorage.setItem("last_drawing_submit", Date.now().toString());
+    setSubmitStatus("success");
+    // Update count so "View Wall" button appears if this was the first
+    setWallCount((c) => (c ?? 0) + 1);
+    setTimeout(() => setSubmitStatus("idle"), 3000);
+  }, []);
+
+  // Status label
+  const statusLabel: Record<typeof submitStatus, string> = {
+    idle: "",
+    submitting: "Submitting…",
+    success: "Submitted ✓",
+    error: "Failed — try again",
+    cooldown: "Wait 1 min between submissions",
+    empty: "Draw something first",
+  };
+
+  const isSubmitting = submitStatus === "submitting";
+  const showWall = wallCount !== null && wallCount > 0;
+
+  return (
+    <>
+      <style>{`
+        .editor-root {
+          --editor-bg:        #f0ede6;
+          --editor-surface:   #e8e6e0;
+          --editor-canvas:    #f7f5f0;
+          --editor-border:    rgba(10,10,10,0.1);
+          --editor-grid:      rgba(10,10,10,0.25);
+          --editor-fg:        #0a0a0a;
+          --editor-fg-muted:  rgba(10,10,10,0.45);
+          --editor-accent:    #0a0a0a;
+          --editor-accent-fg: #f5f5f5;
+          --editor-selection: rgba(10,10,10,0.07);
+        }
+        .dark .editor-root {
+          --editor-bg:        #0a0a0a;
+          --editor-surface:   #141414;
+          --editor-canvas:    #111111;
+          --editor-border:    rgba(255,255,255,0.08);
+          --editor-grid:      rgba(255,255,255,0.15);
+          --editor-fg:        #f5f5f5;
+          --editor-fg-muted:  rgba(245,245,245,0.4);
+          --editor-accent:    #f5f5f5;
+          --editor-accent-fg: #0a0a0a;
+          --editor-selection: rgba(255,255,255,0.06);
+        }
+        body:has(.editor-root) { overflow: hidden !important; }
+
+        .editor-header-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          border-radius: 6px;
+          border: 1px solid var(--editor-border);
+          font-size: 12px;
+          font-weight: 500;
+          font-family: inherit;
+          cursor: pointer;
+          text-decoration: none;
+          transition: background 0.15s, color 0.15s, opacity 0.15s;
+          white-space: nowrap;
+        }
+        .editor-header-btn:disabled {
+          opacity: 0.5;
+          cursor: default;
+        }
+        .editor-header-btn.primary {
+          background: var(--editor-accent);
+          color: var(--editor-accent-fg);
+          border-color: var(--editor-accent);
+        }
+        .editor-header-btn.primary:not(:disabled):hover {
+          opacity: 0.85;
+        }
+        .editor-header-btn.ghost {
+          background: transparent;
+          color: var(--editor-fg);
+        }
+        .editor-header-btn.ghost:hover {
+          background: var(--editor-selection);
+        }
+
+        @keyframes editor-status-in {
+          from { opacity: 0; transform: translateY(2px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .editor-status {
+          font-size: 11px;
+          animation: editor-status-in 0.2s ease;
+        }
+      `}</style>
+
+      <div
+        className="editor-root"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 50,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        {/* ── Header ── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 16px",
+            height: 44,
+            borderBottom: "1px solid var(--editor-border)",
+            background: "var(--editor-surface)",
+            flexShrink: 0,
+            gap: 10,
+          }}
+        >
+          {/* Left: back link */}
+          <a
+            href="/"
+            className="editor-header-btn ghost"
+            style={{ color: "var(--editor-fg-muted)" }}
+          >
+            ← Portfolio
+          </a>
+
+          {/* Center: title */}
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: 13,
+              letterSpacing: "-0.01em",
+              color: "var(--editor-fg)",
+              flex: 1,
+              textAlign: "center",
+            }}
+          >
+            Design Editor
+          </span>
+
+          {/* Right: wall actions */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Status message (success / error / etc.) */}
+            {submitStatus !== "idle" && (
+              <span
+                className="editor-status"
+                style={{
+                  color:
+                    submitStatus === "success"
+                      ? "#1d9e75"
+                      : submitStatus === "error" || submitStatus === "cooldown"
+                      ? "#e05252"
+                      : "var(--editor-fg-muted)",
+                }}
+              >
+                {statusLabel[submitStatus]}
+              </span>
+            )}
+
+            {/* Submit to Wall */}
+            <button
+              className="editor-header-btn primary"
+              onClick={handleSubmitToWall}
+              disabled={isSubmitting}
+              title="Export current canvas and submit it to the drawing wall"
+            >
+              {isSubmitting ? (
+                <>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      border: "1.5px solid currentColor",
+                      borderTopColor: "transparent",
+                      animation: "spin 0.6s linear infinite",
+                    }}
+                  />
+                  Submitting…
+                </>
+              ) : (
+                <>↑ Submit to Wall</>
+              )}
+            </button>
+
+            {/* View Wall — only shown when ≥1 drawing exists */}
+            {showWall && (
+              <a
+                href="/wall"
+                className="editor-header-btn ghost"
+                title={`${wallCount} drawing${wallCount !== 1 ? "s" : ""} on the wall`}
+              >
+                View Wall
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minWidth: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    background: "var(--editor-accent)",
+                    color: "var(--editor-accent-fg)",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    padding: "0 4px",
+                  }}
+                >
+                  {wallCount}
+                </span>
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* ── Editor canvas ── */}
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          <DesignEditor ref={editorRef} />
+        </div>
+      </div>
+
+      {/* Spin keyframe */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </>
+  );
+}
