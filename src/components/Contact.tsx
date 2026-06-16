@@ -32,7 +32,7 @@ export function Contact() {
       });
 
       // Headline CTA Staggered letter rise
-      const headlineText = new SplitType(".contact-headline", {
+      const headlineText = new SplitType(".contact-headline-line", {
         types: "chars",
       });
       // Wrap chars to hide overflow for the rise effect
@@ -46,7 +46,7 @@ export function Contact() {
 
       gsap.from(headlineText.chars, {
         scrollTrigger: {
-          trigger: ".contact-headline",
+          trigger: ".contact-headline-line",
           start: "top 80%",
         },
         y: 80,
@@ -115,15 +115,16 @@ export function Contact() {
       className="relative overflow-hidden w-full px-6 md:px-12 py-12 flex flex-col items-center text-center min-h-screen transition-colors duration-500"
     >
       <div className="flex flex-col items-center justify-center flex-1 w-full relative z-10">
-        <h2 className="contact-headline text-[clamp(48px,12vw,160px)] font-black uppercase leading-[0.85] tracking-tighter mb-8 md:mb-12">
+        <h2 className="contact-headline-line text-[clamp(36px,12vw,160px)] font-black uppercase leading-[0.85] tracking-tighter whitespace-nowrap">
           LET&apos;S WORK
-          <br />
+        </h2>
+        <h2 className="contact-headline-line text-[clamp(36px,12vw,160px)] font-black uppercase leading-[0.85] tracking-tighter mb-8 md:mb-12 whitespace-nowrap">
           TOGETHER
         </h2>
         <a
           ref={emailRef}
           href="mailto:hello@example.com"
-          className="text-2xl md:text-4xl font-medium tracking-tight transition-opacity duration-300 inline-block uppercase"
+          className="text-xl sm:text-2xl md:text-4xl font-medium tracking-tight transition-opacity duration-300 inline-block uppercase break-all"
         >
           hello@example.com
         </a>
@@ -134,13 +135,13 @@ export function Contact() {
           <div className="flex flex-col gap-4 text-sm md:text-base font-medium uppercase tracking-widest">
             <a
               href="#"
-              className="social-link hover:opacity-50 transition-opacity duration-300"
+              className="social-link hover:opacity-50 transition-opacity duration-300 min-h-[44px] flex items-center"
             >
               Twitter / X
             </a>
             <a
               href="#"
-              className="social-link hover:opacity-50 transition-opacity duration-300"
+              className="social-link hover:opacity-50 transition-opacity duration-300 min-h-[44px] flex items-center"
             >
               LinkedIn
             </a>
@@ -148,13 +149,13 @@ export function Contact() {
           <div className="flex flex-col gap-4 text-sm md:text-base font-medium uppercase tracking-widest">
             <a
               href="#"
-              className="social-link hover:opacity-50 transition-opacity duration-300"
+              className="social-link hover:opacity-50 transition-opacity duration-300 min-h-[44px] flex items-center"
             >
               GitHub
             </a>
             <a
               href="#"
-              className="social-link hover:opacity-50 transition-opacity duration-300"
+              className="social-link hover:opacity-50 transition-opacity duration-300 min-h-[44px] flex items-center"
             >
               Dribbble
             </a>

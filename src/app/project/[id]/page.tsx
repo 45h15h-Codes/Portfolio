@@ -50,7 +50,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           <div className="mb-8">
             <span className="text-sm md:text-base uppercase tracking-widest opacity-50">{project.tag}</span>
           </div>
-          <h1 className="text-[clamp(40px,8vw,120px)] font-black uppercase leading-[0.9] tracking-tighter mb-12">
+          <h1 className="text-[clamp(32px,10vw,120px)] font-black uppercase leading-[0.9] tracking-tighter mb-8 break-words hyphens-auto">
             {project.title}
           </h1>
           
@@ -64,7 +64,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             />
           </div>
           
-          <div className="max-w-3xl ml-auto text-xl md:text-3xl font-medium leading-relaxed tracking-tight mb-24 md:mb-32">
+          <div className="max-w-3xl mr-auto md:ml-auto md:mr-0 text-xl md:text-3xl font-medium leading-[1.6] tracking-tight mb-24 md:mb-32 break-words">
             {project.description}
           </div>
         </div>

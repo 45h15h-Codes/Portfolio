@@ -103,15 +103,15 @@ export function About() {
           </ul>
         </div>
 
-        <div className="flex gap-8 mt-24 md:mt-32">
-          <a href="#" className="group flex items-center gap-2 text-sm md:text-base font-bold uppercase tracking-wide hover:opacity-50 transition-opacity duration-300">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 mt-24 md:mt-32">
+          <a href="#" className="group flex items-center w-fit gap-2 text-sm md:text-base font-bold uppercase tracking-wide hover:opacity-50 transition-opacity duration-300 min-h-[44px] py-2">
             LinkedIn
             <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
               <line x1="5" y1="19" x2="19" y2="5"></line>
               <polyline points="9 5 19 5 19 15"></polyline>
             </svg>
           </a>
-          <a href="#" className="group flex items-center gap-2 text-sm md:text-base font-bold uppercase tracking-wide hover:opacity-50 transition-opacity duration-300">
+          <a href="#" className="group flex items-center w-fit gap-2 text-sm md:text-base font-bold uppercase tracking-wide hover:opacity-50 transition-opacity duration-300 min-h-[44px] py-2">
             GitHub
             <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
               <line x1="5" y1="19" x2="19" y2="5"></line>

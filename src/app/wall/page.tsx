@@ -190,13 +190,13 @@ export default function WallPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={handleClear}
-              className="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity"
+              className="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity min-h-[44px] px-2"
             >
               Clear
             </button>
             <button
               onClick={handleSubmit}
-              className="text-sm font-medium px-4 py-2 border border-[#0A0A0A] dark:border-[#E5E5E5] rounded-sm hover:bg-[#0A0A0A] hover:text-[#E5E5E5] dark:hover:bg-[#E5E5E5] dark:hover:text-[#0A0A0A] transition-colors"
+              className="text-sm font-medium px-4 py-2 min-h-[44px] border border-[#0A0A0A] dark:border-[#E5E5E5] rounded-sm hover:bg-[#0A0A0A] hover:text-[#E5E5E5] dark:hover:bg-[#E5E5E5] dark:hover:text-[#0A0A0A] transition-colors"
             >
               Submit
             </button>
@@ -221,7 +221,7 @@ export default function WallPage() {
 
         <Link
           href="/"
-          className="mt-12 text-xs font-medium opacity-40 hover:opacity-100 transition-opacity"
+          className="mt-12 text-xs font-medium opacity-40 hover:opacity-100 transition-opacity min-h-[44px] flex items-center justify-center"
         >
           Return to surface
         </Link>

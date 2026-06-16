@@ -120,11 +120,13 @@ export default function EditorClient() {
         .editor-header-btn {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 6px;
-          padding: 5px 12px;
+          padding: 8px 16px;
+          min-height: 44px;
           border-radius: 6px;
           border: 1px solid var(--editor-border);
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 500;
           font-family: inherit;
           cursor: pointer;
@@ -179,12 +181,13 @@ export default function EditorClient() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0 16px",
-            height: 44,
+            padding: "8px 16px",
+            minHeight: 60,
             borderBottom: "1px solid var(--editor-border)",
             background: "var(--editor-surface)",
             flexShrink: 0,
             gap: 10,
+            flexWrap: "wrap",
           }}
         >
           {/* Left: back link */}
@@ -198,6 +201,7 @@ export default function EditorClient() {
 
           {/* Center: title */}
           <span
+            className="hidden sm:block"
             style={{
               fontWeight: 600,
               fontSize: 13,
@@ -211,7 +215,7 @@ export default function EditorClient() {
           </span>
 
           {/* Right: wall actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {/* Status message (success / error / etc.) */}
             {submitStatus !== "idle" && (
               <span
