@@ -15,6 +15,7 @@ export function Navigation() {
   const logoColor = mounted && resolvedTheme === "dark" ? "#f5f5f5" : "#111111";
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -46,7 +47,7 @@ export function Navigation() {
               height="120px"
               zoom={4}
               intro="none"
-              shadow={false}
+              shadow={true}
               smoothness={0.6}
               color={logoColor}
               material="holographic"
@@ -59,8 +60,8 @@ export function Navigation() {
               resetOnIdle
               resetDelay={0.5}
               lightPosition={[-2.5, 0, 10]}
-              lightIntensity={0}
-              ambientIntensity={0}
+              lightIntensity={1.2}
+              ambientIntensity={0.3}
             />
           </div>
         </Link>

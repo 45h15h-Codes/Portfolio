@@ -9,6 +9,12 @@ export function CustomCursor() {
     const cursor = cursorRef.current;
     if (!cursor) return;
 
+    // Respect OS-level reduced-motion preference — let the system cursor take over
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      cursor.style.display = "none";
+      return;
+    }
+
     // Use GSAP quickTo for smooth lerping
     const xTo = gsap.quickTo(cursor, "x", { duration: 0.15, ease: "power3" });
     const yTo = gsap.quickTo(cursor, "y", { duration: 0.15, ease: "power3" });
@@ -28,15 +34,15 @@ export function CustomCursor() {
       gsap.to(cursor, { scale: 1, opacity: 1, duration: 0.3 });
     };
 
-    // Attach listeners to links and buttons dynamically
-    const cleanupLinks: Element[] = [];
+    // Use a Set — add() is idempotent, no need for an includes() guard
+    const cleanupLinks = new Set<Element>();
     const addListeners = () => {
       const links = document.querySelectorAll("a, button, .project-row");
       links.forEach((link) => {
-        if (!cleanupLinks.includes(link)) {
+        if (!cleanupLinks.has(link)) {
           link.addEventListener("mouseenter", handleMouseEnter);
           link.addEventListener("mouseleave", handleMouseLeave);
-          cleanupLinks.push(link);
+          cleanupLinks.add(link);
         }
       });
     };

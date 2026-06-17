@@ -34,6 +34,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
   const [msg, setMsg] = useState<{ line1: string; line2: string } | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMsg(nextMessage());
   }, []);
 

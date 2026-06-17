@@ -1,26 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Link from "next/link";
 import DesignEditor from "@/components/editor";
 import type { EditorHandle } from "@/components/editor";
 import { supabase } from "@/lib/supabase";
+import {
+  getOrCreateFingerprint,
+  canSubmit,
+  getLastSubmitTimestamp,
+  recordSubmit,
+} from "@/lib/fingerprint";
 
-// ── helpers (same as wall page) ───────────────────────────────────────────────
-
-function getOrCreateFingerprint() {
-  let fp = localStorage.getItem("drawing_fp");
-  if (!fp) {
-    fp = crypto.randomUUID();
-    localStorage.setItem("drawing_fp", fp);
-  }
-  return fp;
-}
-
-function canSubmit() {
-  const last = localStorage.getItem("last_drawing_submit");
-  if (!last) return true;
-  return Date.now() - parseInt(last, 10) > 60_000;
-}
 
 // ── component ─────────────────────────────────────────────────────────────────
 
@@ -39,7 +30,13 @@ export default function EditorClient() {
     supabase
       .from("drawings")
       .select("*", { count: "exact", head: true })
-      .then(({ count }) => setWallCount(count ?? 0));
+      .then(({ count, error }) => {
+        if (error) {
+          console.error("Failed to fetch wall count:", error);
+          return; // leave wallCount as null (unknown)
+        }
+        setWallCount(count ?? 0);
+      });
   }, []);
 
   const handleSubmitToWall = useCallback(async () => {
@@ -49,7 +46,7 @@ export default function EditorClient() {
     // Check canvas has something on it
     const dataUrl = stage.toDataURL({ pixelRatio: 2 });
 
-    if (!canSubmit()) {
+    if (!canSubmit(getLastSubmitTimestamp())) {
       setSubmitStatus("cooldown");
       setTimeout(() => setSubmitStatus("idle"), 3000);
       return;
@@ -68,7 +65,7 @@ export default function EditorClient() {
       return;
     }
 
-    localStorage.setItem("last_drawing_submit", Date.now().toString());
+    recordSubmit();
     setSubmitStatus("success");
     // Update count so "View Wall" button appears if this was the first
     setWallCount((c) => (c ?? 0) + 1);
@@ -191,13 +188,13 @@ export default function EditorClient() {
           }}
         >
           {/* Left: back link */}
-          <a
+          <Link
             href="/"
             className="editor-header-btn ghost"
             style={{ color: "var(--editor-fg-muted)" }}
           >
             ← Portfolio
-          </a>
+          </Link>
 
           {/* Center: title */}
           <span
@@ -262,7 +259,7 @@ export default function EditorClient() {
 
             {/* View Wall — only shown when ≥1 drawing exists */}
             {showWall && (
-              <a
+              <Link
                 href="/wall"
                 className="editor-header-btn ghost"
                 title={`${wallCount} drawing${wallCount !== 1 ? "s" : ""} on the wall`}
@@ -285,7 +282,7 @@ export default function EditorClient() {
                 >
                   {wallCount}
                 </span>
-              </a>
+              </Link>
             )}
           </div>
         </div>

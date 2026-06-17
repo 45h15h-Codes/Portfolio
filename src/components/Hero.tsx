@@ -61,9 +61,10 @@ export function Hero() {
       {/* Portrait Photo */}
       <div className="hero-photo w-full md:w-[40%] aspect-square relative mb-24 md:mb-32">
         <Image
-          src="/portrait.png"
+          src="/cat-pfp.jpg"
           alt="Creative Developer Portrait"
           fill
+          unoptimized
           sizes="(max-width: 768px) 100vw, 40vw"
           className="object-cover grayscale"
           priority
@@ -88,21 +89,34 @@ export function Hero() {
             <polyline points="19 12 12 19 5 12"></polyline>
           </svg>
           <p className="text-sm md:text-base font-normal max-w-[280px] uppercase leading-relaxed tracking-wide">
-            I SUPPORT DESIGNERS AND AGENCIES WITH CREATIVE DEVELOPMENT
+            SELF-LEARNING DEVELOPER SPECIALIZING IN FULL STACK SOLUTIONS
           </p>
         </div>
         <div className="hero-bottom w-full md:w-auto text-right">
           <h2
-            className="text-[clamp(36px,11vw,160px)] font-black uppercase leading-[0.75] tracking-tighter cursor-pointer break-all md:break-normal"
-            onClick={(e) => {
-              const count = Number(e.currentTarget.dataset.clicks || 0) + 1;
-              e.currentTarget.dataset.clicks = count.toString();
-              if (count >= 1) {
+            role="button"
+            tabIndex={0}
+            className="text-[clamp(36px,11vw,160px)] font-black uppercase leading-[0.75] tracking-tighter cursor-pointer break-all md:break-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-8"
+            onClick={() => {
+              const handleNavigate = () => {
                 document.body.style.transition = "opacity 0.3s ease";
                 document.body.style.opacity = "0";
                 setTimeout(() => {
                   window.location.href = "/editor";
+                  // Restore opacity in case the navigation doesn't go through
+                  setTimeout(() => {
+                    document.body.style.opacity = "1";
+                  }, 1000);
                 }, 300);
+              };
+              handleNavigate();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                // trigger the same navigation logic
+                const target = e.currentTarget as HTMLElement;
+                target.click();
               }
             }}
           >

@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { NotepadTextDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FooterLink {
@@ -33,7 +32,6 @@ export const Footer = ({
   navLinks = [],
   creatorName,
   creatorUrl,
-  brandIcon,
   className,
 }: FooterProps) => {
   return (

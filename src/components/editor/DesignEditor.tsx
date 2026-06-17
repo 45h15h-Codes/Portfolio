@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
 import { Stage, Layer, Line } from "react-konva";
 import type Konva from "konva";
 
@@ -161,13 +161,7 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
   // All mutators below compute `next` from the `shapes` closure, then call
   // commitShapes(next) directly.
 
-  // Non-committing live update — used only for drag preview (no undo entry)
-  const updateShape = useCallback(
-    (id: string, attrs: Partial<Shape>) => {
-      setShapes((prev) => prev.map((s) => (s.id === id ? { ...s, ...attrs } : s)));
-    },
-    []
-  );
+  // updateShape was unused and removed to fix lint errors
 
   // Committing update — for drag end / transform end (writes undo entry)
   const commitUpdate = useCallback(
@@ -300,8 +294,14 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
 
   // ── derived ─────────────────────────────────────────────────────────────────
 
-  const sortedShapes = [...shapes].sort((a, b) => a.zIndex - b.zIndex);
-  const selectedShape = shapes.find((s) => s.id === selectedId) ?? null;
+  const sortedShapes = useMemo(
+    () => [...shapes].sort((a, b) => a.zIndex - b.zIndex),
+    [shapes]
+  );
+  const selectedShape = useMemo(
+    () => shapes.find((s) => s.id === selectedId) ?? null,
+    [shapes, selectedId]
+  );
   const canUndo = historyStep.current > 0;
 
   // Sync active colors FROM selected shape so pickers reflect its real values
@@ -401,7 +401,6 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
                 <ShapeNode
                   key={shape.id}
                   shape={shape}
-                  isSelected={shape.id === selectedId}
                   onSelect={(id) => {
                     if (activeTool === "select") setSelectedId(id);
                   }}

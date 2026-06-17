@@ -5,6 +5,7 @@ import { SmoothScroll } from "@/components/SmoothScroll";
 import { CustomCursor } from "@/components/CustomCursor";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { KonamiListener } from "@/components/KonamiListener";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -12,9 +13,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Ashish | Creative Developer",
+  title: "Ashish Vala | Full Stack Developer",
   description:
-    "Portfolio of Ashish, a creative developer supporting clients and agencies with modern web experiences.",
+    "Portfolio of Ashish Vala, a Self-Learning Developer specializing in full stack solutions with Laravel, PHP, and Vue.js.",
 };
 
 export default function RootLayout({
@@ -37,6 +38,7 @@ export default function RootLayout({
           <CustomCursor />
           <KonamiListener />
           <SmoothScroll>{children}</SmoothScroll>
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>

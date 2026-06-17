@@ -6,12 +6,11 @@ import type Konva from "konva";
 
 interface Props {
   shape: Shape;
-  isSelected: boolean;
   onSelect: (id: string) => void;
   onChange: (id: string, attrs: Partial<Shape>) => void;
 }
 
-export function ShapeNode({ shape, isSelected, onSelect, onChange }: Props) {
+export function ShapeNode({ shape, onSelect, onChange }: Props) {
   const commonProps = {
     id: shape.id,
     x: shape.x,

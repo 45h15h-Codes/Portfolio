@@ -3,6 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { isSafeImageDataUrl } from "@/lib/validateImage";
+import {
+  getOrCreateFingerprint,
+  canSubmit,
+  getLastSubmitTimestamp,
+  recordSubmit,
+} from "@/lib/fingerprint";
 
 function isCanvasBlank(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext("2d");
@@ -15,22 +22,6 @@ function isCanvasBlank(canvas: HTMLCanvasElement) {
   return !pixelBuffer.some((color) => color !== 0xffffffff && color !== 0);
 }
 
-function getOrCreateFingerprint() {
-  let fp = localStorage.getItem("drawing_fp");
-  if (!fp) {
-    fp = crypto.randomUUID();
-    localStorage.setItem("drawing_fp", fp);
-  }
-  return fp;
-}
-
-function canSubmit() {
-  const last = localStorage.getItem("last_drawing_submit");
-  if (!last) return true;
-  const cooldownMs = 60 * 1000;
-  return Date.now() - parseInt(last, 10) > cooldownMs;
-}
-
 interface Drawing {
   image_data: string;
   created_at: string;
@@ -40,6 +31,7 @@ export default function WallPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [status, setStatus] = useState<string>("");
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchRecentDrawings = async () => {
     const { data, error } = await supabase
@@ -48,12 +40,19 @@ export default function WallPage() {
       .order("created_at", { ascending: false })
       .limit(10);
 
-    if (!error && data) {
+    if (error) {
+      console.error("Failed to fetch drawings:", error);
+      setFetchError("Couldn't load recent drawings. Try refreshing.");
+      return;
+    }
+    if (data) {
+      setFetchError(null);
       setDrawings(data);
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRecentDrawings();
   }, []);
 
@@ -107,8 +106,8 @@ export default function WallPage() {
     canvas.addEventListener("mousemove", move);
     canvas.addEventListener("mouseup", stop);
     canvas.addEventListener("mouseleave", stop);
-    canvas.addEventListener("touchstart", start as any, { passive: false });
-    canvas.addEventListener("touchmove", move as any, { passive: false });
+    canvas.addEventListener("touchstart", start as unknown as EventListener, { passive: false });
+    canvas.addEventListener("touchmove", move as unknown as EventListener, { passive: false });
     canvas.addEventListener("touchend", stop);
 
     return () => {
@@ -116,8 +115,8 @@ export default function WallPage() {
       canvas.removeEventListener("mousemove", move);
       canvas.removeEventListener("mouseup", stop);
       canvas.removeEventListener("mouseleave", stop);
-      canvas.removeEventListener("touchstart", start as any);
-      canvas.removeEventListener("touchmove", move as any);
+      canvas.removeEventListener("touchstart", start as unknown as EventListener);
+      canvas.removeEventListener("touchmove", move as unknown as EventListener);
       canvas.removeEventListener("touchend", stop);
     };
   }, []);
@@ -140,14 +139,21 @@ export default function WallPage() {
       setStatus("Draw something first.");
       return;
     }
-    
-    if (!canSubmit()) {
+
+    if (!canSubmit(getLastSubmitTimestamp())) {
       setStatus("You can submit again in a minute.");
       return;
     }
 
     setStatus("Submitting...");
     const imageData = canvas.toDataURL("image/png");
+
+    if (!isSafeImageDataUrl(imageData)) {
+      setStatus("Invalid image data — try again.");
+      setTimeout(() => setStatus(""), 4000);
+      return;
+    }
+
     const fingerprint = getOrCreateFingerprint();
 
     const { error } = await supabase
@@ -156,13 +162,14 @@ export default function WallPage() {
 
     if (error) {
       setStatus("Something went wrong, try again.");
+      setTimeout(() => setStatus(""), 4000);
       return;
     }
 
-    localStorage.setItem("last_drawing_submit", Date.now().toString());
+    recordSubmit();
     setStatus("Submitted successfully.");
     fetchRecentDrawings();
-    
+
     // Clear canvas
     const ctx = canvas.getContext("2d");
     if (ctx) {
@@ -206,17 +213,27 @@ export default function WallPage() {
 
         <div className="w-full mt-12">
           <h2 className="text-sm font-medium mb-4 opacity-60 text-center">Last 10 drawings</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-            {drawings.map((drawing, i) => (
-              <div key={i} className="aspect-[280/180] w-full border border-black/10 dark:border-white/10 rounded-sm overflow-hidden bg-white">
-                <img
-                  src={drawing.image_data}
-                  alt={`Drawing ${i}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
+          {fetchError ? (
+            <p className="text-xs text-center opacity-60">{fetchError}</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              {drawings.map((drawing, i) => (
+                <div key={i} className="aspect-[280/180] w-full border border-black/10 dark:border-white/10 rounded-sm overflow-hidden bg-white">
+                  {isSafeImageDataUrl(drawing.image_data) ? (
+                    <img
+                      src={drawing.image_data}
+                      alt={`Drawing ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs opacity-40">
+                      Unable to display
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <Link

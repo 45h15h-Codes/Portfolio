@@ -123,24 +123,26 @@ export function Contact() {
         </h2>
         <a
           ref={emailRef}
-          href="mailto:hello@example.com"
+          href="mailto:ashishvala2004@gmail.com"
           className="text-xl sm:text-2xl md:text-4xl font-medium tracking-tight transition-opacity duration-300 inline-block uppercase break-all"
         >
-          hello@example.com
+          ashishvala2004@gmail.com
         </a>
       </div>
 
       <div className="social-container w-full flex flex-col md:flex-row justify-between items-end border-t border-current/10 pt-8 md:pt-12 mt-auto relative z-10">
         <div className="flex flex-col md:flex-row gap-8 md:gap-24 w-full md:w-auto mb-8 md:mb-0 text-left">
           <div className="flex flex-col gap-4 text-sm md:text-base font-medium uppercase tracking-widest">
-            <a
+            {/* <a
               href="#"
               className="social-link hover:opacity-50 transition-opacity duration-300 min-h-[44px] flex items-center"
             >
               Twitter / X
-            </a>
+            </a> */}
             <a
-              href="#"
+              href="https://www.linkedin.com/in/ashish-vala"
+              target="_blank"
+              rel="noopener noreferrer"
               className="social-link hover:opacity-50 transition-opacity duration-300 min-h-[44px] flex items-center"
             >
               LinkedIn
@@ -148,17 +150,19 @@ export function Contact() {
           </div>
           <div className="flex flex-col gap-4 text-sm md:text-base font-medium uppercase tracking-widest">
             <a
-              href="#"
+              href="https://github.com/45h15h-Codes"
+              target="_blank"
+              rel="noopener noreferrer"
               className="social-link hover:opacity-50 transition-opacity duration-300 min-h-[44px] flex items-center"
             >
               GitHub
             </a>
-            <a
+            {/* <a
               href="#"
               className="social-link hover:opacity-50 transition-opacity duration-300 min-h-[44px] flex items-center"
             >
               Dribbble
-            </a>
+            </a> */}
           </div>
         </div>
 
