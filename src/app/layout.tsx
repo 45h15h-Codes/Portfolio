@@ -13,6 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.ashishvala.in"),
   title: "Ashish Vala | Full Stack Developer",
   description:
     "Portfolio of Ashish Vala, a Self-Learning Developer specializing in full stack solutions with Laravel, PHP, and Vue.js.",
