@@ -11,6 +11,7 @@ import {
   getLastSubmitTimestamp,
   recordSubmit,
 } from "@/lib/fingerprint";
+import { LiveCursors } from "@/components/editor/LiveCursors";
 
 
 // ── component ─────────────────────────────────────────────────────────────────
@@ -40,11 +41,8 @@ export default function EditorClient() {
   }, []);
 
   const handleSubmitToWall = useCallback(async () => {
-    const stage = editorRef.current?.getCanvas();
-    if (!stage) return;
-
-    // Check canvas has something on it
-    const dataUrl = stage.toDataURL({ pixelRatio: 2 });
+    const dataUrl = editorRef.current?.getDataURL();
+    if (!dataUrl) return;
 
     if (!canSubmit(getLastSubmitTimestamp())) {
       setSubmitStatus("cooldown");
@@ -87,6 +85,7 @@ export default function EditorClient() {
 
   return (
     <>
+      <LiveCursors />
       <style>{`
         .editor-root {
           --editor-bg:        #f0ede6;

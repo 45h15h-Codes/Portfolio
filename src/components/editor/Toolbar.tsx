@@ -162,6 +162,9 @@ const TOOLS: { id: ActiveTool; label: string; icon: string }[] = [
   { id: "ellipse",label: "Ellipse",icon: "◯" },
   { id: "line",   label: "Pen",    icon: "✏" },
   { id: "text",   label: "Text",   icon: "T" },
+  { id: "stamp-star", label: "Star", icon: "★" },
+  { id: "stamp-arrow", label: "Arrow", icon: "➔" },
+  { id: "stamp-barcode", label: "Code", icon: "|||" },
 ];
 
 export interface ToolbarProps {
@@ -186,6 +189,7 @@ export interface ToolbarProps {
   onRedo: () => void;
   canUndo: boolean;
   onExport: () => void;
+  onUploadImage: (file: File) => void;
 }
 
 export function Toolbar({
@@ -206,6 +210,7 @@ export function Toolbar({
   onRedo,
   canUndo,
   onExport,
+  onUploadImage,
 }: ToolbarProps) {
   return (
     <div
@@ -258,6 +263,24 @@ export function Toolbar({
         {/* Undo / Redo */}
         <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" style={iconBtn(!canUndo)}>↩</button>
         <button onClick={onRedo} title="Redo (Ctrl+Y / Ctrl+Shift+Z)" style={iconBtn(false)}>↪</button>
+
+        <Sep />
+
+        {/* Upload Image */}
+        <label title="Upload Image Collage" style={{ ...iconBtn(false), display: "flex", alignItems: "center", cursor: "pointer" }}>
+          <span>+🖼</span>
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                onUploadImage(e.target.files[0]);
+                e.target.value = ""; // reset
+              }
+            }}
+          />
+        </label>
 
         <div style={{ flex: 1 }} />
 

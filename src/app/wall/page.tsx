@@ -119,7 +119,7 @@ export default function WallPage() {
                     <img
                       src={drawing.image_data}
                       alt="A visitor's drawing"
-                      className="w-full h-auto object-contain dark:invert mix-blend-multiply dark:mix-blend-screen scale-90 group-hover:scale-100 transition-transform duration-500 ease-out pointer-events-none"
+                      className="w-full h-auto object-contain scale-90 group-hover:scale-100 transition-transform duration-500 ease-out pointer-events-none shadow-sm bg-[#f7f5f0]"
                     />
                   </div>
                 ) : (
@@ -202,7 +202,7 @@ export default function WallPage() {
             <img 
               src={selectedDrawing.image_data} 
               alt="Enlarged drawing"
-              className="max-w-[90vw] max-h-[80vh] object-contain dark:invert mix-blend-multiply dark:mix-blend-screen animate-in fade-in zoom-in-95 duration-300 pointer-events-none"
+              className="max-w-[90vw] max-h-[80vh] object-contain animate-in fade-in zoom-in-95 duration-300 pointer-events-none shadow-2xl bg-[#f7f5f0]"
             />
           </div>
         </div>

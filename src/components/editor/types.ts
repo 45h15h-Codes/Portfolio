@@ -1,4 +1,4 @@
-export type ShapeType = "rect" | "ellipse" | "line" | "text";
+export type ShapeType = "rect" | "ellipse" | "line" | "text" | "stamp" | "image";
 
 export interface Shape {
   id: string;
@@ -19,6 +19,10 @@ export interface Shape {
   // line/path only
   points?: number[];
   tension?: number;
+  // stamp only
+  stampType?: string;
+  // image only
+  imageSrc?: string;
 }
 
-export type ActiveTool = "select" | ShapeType;
+export type ActiveTool = "select" | "rect" | "ellipse" | "line" | "text" | "stamp-star" | "stamp-arrow" | "stamp-barcode";

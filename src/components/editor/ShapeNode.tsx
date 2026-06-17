@@ -1,8 +1,22 @@
 "use client";
 
-import { Rect, Ellipse, Line, Text } from "react-konva";
+import { useState, useEffect } from "react";
+import { Rect, Ellipse, Path, Text, Image as KonvaImage } from "react-konva";
 import type { Shape } from "./types";
 import type Konva from "konva";
+import { getFreehandPath } from "@/lib/freehand";
+import { STAMPS, STAMP_SIZE } from "@/lib/stamps";
+
+function useImage(url: string | undefined) {
+  const [image, setImage] = useState<HTMLImageElement | undefined>(undefined);
+  useEffect(() => {
+    if (!url) return;
+    const img = new window.Image();
+    img.onload = () => setImage(img);
+    img.src = url;
+  }, [url]);
+  return image;
+}
 
 interface Props {
   shape: Shape;
@@ -11,6 +25,8 @@ interface Props {
 }
 
 export function ShapeNode({ shape, onSelect, onChange }: Props) {
+  const imageObj = useImage(shape.type === "image" ? shape.imageSrc : undefined);
+
   const commonProps = {
     id: shape.id,
     x: shape.x,
@@ -29,8 +45,8 @@ export function ShapeNode({ shape, onSelect, onChange }: Props) {
         x: node.x(),
         y: node.y(),
         rotation: node.rotation(),
-        width: node.width() * node.scaleX(),
-        height: node.height() * node.scaleY(),
+        width: Math.max(5, Math.abs(node.width() * node.scaleX())),
+        height: Math.max(5, Math.abs(node.height() * node.scaleY())),
       });
       node.scaleX(1);
       node.scaleY(1);
@@ -63,16 +79,11 @@ export function ShapeNode({ shape, onSelect, onChange }: Props) {
       );
     case "line":
       return (
-        <Line
+        <Path
           {...commonProps}
-          points={shape.points ?? []}
-          stroke={shape.stroke || shape.fill}
-          strokeWidth={shape.strokeWidth || 2.5}
-          tension={shape.tension ?? 0.4}
-          lineCap="round"
-          lineJoin="round"
-          fill={undefined}
-          // lines are not resized the same way — disable transform-end resize for them
+          data={getFreehandPath(shape.points ?? [], shape.strokeWidth || 4)}
+          fill={shape.stroke || shape.fill}
+          // no stroke because the path itself is a filled polygon
           onTransformEnd={undefined}
         />
       );
@@ -97,6 +108,38 @@ export function ShapeNode({ shape, onSelect, onChange }: Props) {
             node.scaleX(1);
             node.scaleY(1);
           }}
+        />
+      );
+    case "stamp":
+      return (
+        <Path
+          {...commonProps}
+          data={STAMPS[shape.stampType ?? "star"]}
+          fill={shape.fill}
+          scaleX={shape.width / STAMP_SIZE}
+          scaleY={shape.height / STAMP_SIZE}
+          onTransformEnd={(e: Konva.KonvaEventObject<Event>) => {
+            const node = e.target;
+            onChange(shape.id, {
+              x: node.x(),
+              y: node.y(),
+              rotation: node.rotation(),
+              width: Math.max(5, Math.abs(STAMP_SIZE * node.scaleX())),
+              height: Math.max(5, Math.abs(STAMP_SIZE * node.scaleY())),
+            });
+            node.scaleX(1);
+            node.scaleY(1);
+          }}
+        />
+      );
+    case "image":
+      if (!imageObj) return null;
+      return (
+        <KonvaImage
+          {...commonProps}
+          image={imageObj}
+          width={shape.width}
+          height={shape.height}
         />
       );
     default:

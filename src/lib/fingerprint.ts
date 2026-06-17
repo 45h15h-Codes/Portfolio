@@ -7,7 +7,11 @@ const COOLDOWN_MS = 60_000; // 1 minute between submissions
 export function getOrCreateFingerprint(): string {
   let fp = localStorage.getItem("drawing_fp");
   if (!fp) {
-    fp = crypto.randomUUID();
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      fp = crypto.randomUUID();
+    } else {
+      fp = "fallback-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2);
+    }
     localStorage.setItem("drawing_fp", fp);
   }
   return fp;

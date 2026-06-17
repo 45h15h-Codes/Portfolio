@@ -1,18 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
-import { Stage, Layer, Line } from "react-konva";
+import { Stage, Layer, Path } from "react-konva";
 import type Konva from "konva";
+import { getFreehandPath } from "@/lib/freehand";
+import { processImageBrutalist } from "@/lib/imageProcessor";
 
 import { ShapeNode } from "./ShapeNode";
 import { SelectionTransformer } from "./SelectionTransformer";
 import { Toolbar } from "./Toolbar";
 import { LayersPanel } from "./LayersPanel";
-import type { Shape, ActiveTool } from "./types";
+import type { Shape, ActiveTool, ShapeType } from "./types";
 
 // Handle exposed via forwardRef so EditorClient can trigger PNG export
 export interface EditorHandle {
   getCanvas: () => Konva.Stage | null;
+  getDataURL: () => string | null;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -29,19 +32,23 @@ interface ShapeColors {
 }
 
 function makeShape(
-  type: Exclude<ActiveTool, "select">,
+  tool: Exclude<ActiveTool, "select">,
   x: number,
   y: number,
   zIndex: number,
   colors: ShapeColors
 ): Shape {
+  const isStamp = tool.startsWith("stamp-");
+  const type = isStamp ? "stamp" : (tool as ShapeType);
+  const stampType = isStamp ? tool.replace("stamp-", "") : undefined;
+
   return {
     id: uid(),
     type,
     x,
     y,
-    width: type === "ellipse" ? 80 : 120,
-    height: type === "ellipse" ? 80 : 80,
+    width: type === "ellipse" ? 80 : isStamp ? 100 : 120,
+    height: type === "ellipse" ? 80 : isStamp ? 100 : 80,
     rotation: 0,
     fill: type === "line" ? "transparent" : colors.fill,
     stroke: colors.stroke,
@@ -52,15 +59,20 @@ function makeShape(
     fontSize: type === "text" ? 18 : undefined,
     points: type === "line" ? [0, 0] : undefined,
     tension: type === "line" ? 0.4 : undefined,
+    stampType,
   };
 }
 
 // ── main component ────────────────────────────────────────────────────────────
 
+import { useTheme } from "next-themes";
+
 const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<ActiveTool>("select");
+
+  const { resolvedTheme } = useTheme();
 
   // ── Active drawing colors ────────────────────────────────────────────────
   // These set what new shapes / lines will look like.
@@ -68,6 +80,15 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
   const [activeFill, setActiveFill] = useState("#e8e6e0");
   const [activeStroke, setActiveStroke] = useState("#0a0a0a");
   const [activeStrokeWidth, setActiveStrokeWidth] = useState(2);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    if (!isMounted && resolvedTheme) {
+      setActiveFill(resolvedTheme === "dark" ? "#141414" : "#e8e6e0");
+      setActiveStroke(resolvedTheme === "dark" ? "#f5f5f5" : "#0a0a0a");
+      setIsMounted(true);
+    }
+  }, [resolvedTheme, isMounted]);
 
   // Keep a ref so event handlers (closures) always see current values
   const activeColorsRef = useRef({ fill: activeFill, stroke: activeStroke, strokeWidth: activeStrokeWidth });
@@ -91,7 +112,28 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
   // Expose stage to parent via ref
   useImperativeHandle(ref, () => ({
     getCanvas: () => stageRef.current,
-  }), []);
+    getDataURL: () => {
+      if (!stageRef.current) return null;
+      const stage = stageRef.current;
+      const pixelRatio = 2;
+      const bgColor = resolvedTheme === "dark" ? "#111111" : "#f7f5f0";
+      
+      const canvas = document.createElement("canvas");
+      canvas.width = stage.width() * pixelRatio;
+      canvas.height = stage.height() * pixelRatio;
+      const ctx = canvas.getContext("2d");
+      
+      if (!ctx) return stage.toDataURL({ pixelRatio });
+      
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const konvaCanvas = stage.toCanvas({ pixelRatio });
+      ctx.drawImage(konvaCanvas, 0, 0);
+      
+      return canvas.toDataURL();
+    }
+  }), [resolvedTheme]);
 
   // ── history helpers ─────────────────────────────────────────────────────────
 
@@ -281,11 +323,70 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
     setActiveTool("select");
   }
 
+  // ── image upload ────────────────────────────────────────────────────────────
+  async function handleUploadImage(file: File) {
+    try {
+      const dataUrl = await processImageBrutalist(file, activeStroke, activeFill);
+      const img = new window.Image();
+      img.onload = () => {
+        // Keep within reasonable initial size, e.g. max 400px wide
+        let w = img.width;
+        let h = img.height;
+        if (w > 400) {
+          h = Math.round((h * 400) / w);
+          w = 400;
+        }
+
+        const newShape: Shape = {
+          id: uid(),
+          type: "image",
+          x: 40,
+          y: 40,
+          width: w,
+          height: h,
+          rotation: 0,
+          fill: "transparent",
+          stroke: "transparent",
+          strokeWidth: 0,
+          zIndex: shapes.length,
+          visible: true,
+          imageSrc: dataUrl,
+        };
+        const next = [...shapes, newShape];
+        commitShapes(next);
+        setSelectedId(newShape.id);
+        setActiveTool("select");
+      };
+      img.src = dataUrl;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   // ── export ──────────────────────────────────────────────────────────────────
 
   function exportAsPNG() {
     if (!stageRef.current) return;
-    const uri = stageRef.current.toDataURL({ pixelRatio: 2 });
+    const stage = stageRef.current;
+    const pixelRatio = 2;
+    const bgColor = resolvedTheme === "dark" ? "#111111" : "#f7f5f0";
+    
+    const canvas = document.createElement("canvas");
+    canvas.width = stage.width() * pixelRatio;
+    canvas.height = stage.height() * pixelRatio;
+    const ctx = canvas.getContext("2d");
+    
+    let uri = "";
+    if (!ctx) {
+      uri = stage.toDataURL({ pixelRatio });
+    } else {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const konvaCanvas = stage.toCanvas({ pixelRatio });
+      ctx.drawImage(konvaCanvas, 0, 0);
+      uri = canvas.toDataURL();
+    }
+
     const link = document.createElement("a");
     link.download = "design.png";
     link.href = uri;
@@ -321,6 +422,9 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
     ellipse: "crosshair",
     line: "crosshair",
     text: "text",
+    "stamp-star": "crosshair",
+    "stamp-arrow": "crosshair",
+    "stamp-barcode": "crosshair",
   };
 
   return (
@@ -355,6 +459,7 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
         onRedo={redo}
         canUndo={canUndo}
         onExport={exportAsPNG}
+        onUploadImage={handleUploadImage}
       />
 
       {/* ── Canvas + Layers ── */}
@@ -410,13 +515,9 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
 
               {/* Live freehand preview */}
               {currentLine && (
-                <Line
-                  points={currentLine.points ?? []}
-                  stroke={currentLine.stroke}
-                  strokeWidth={currentLine.strokeWidth}
-                  tension={currentLine.tension ?? 0.4}
-                  lineCap="round"
-                  lineJoin="round"
+                <Path
+                  data={getFreehandPath(currentLine.points ?? [], currentLine.strokeWidth || 4)}
+                  fill={currentLine.stroke}
                   listening={false}
                 />
               )}
