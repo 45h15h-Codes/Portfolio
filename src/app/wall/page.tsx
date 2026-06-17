@@ -1,26 +1,12 @@
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { isSafeImageDataUrl } from "@/lib/validateImage";
-import {
-  getOrCreateFingerprint,
-  canSubmit,
-  getLastSubmitTimestamp,
-  recordSubmit,
-} from "@/lib/fingerprint";
-
-function isCanvasBlank(canvas: HTMLCanvasElement) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return true;
-  const pixelBuffer = new Uint32Array(
-    ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer
-  );
-  // 0 is transparent, 0xffffffff is white (if little endian), we just check if it's all white or transparent
-  // A more robust check for white background is to see if any pixel is NOT 0xffffffff (white) and NOT 0 (transparent)
-  return !pixelBuffer.some((color) => color !== 0xffffffff && color !== 0);
-}
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 
 interface Drawing {
   image_data: string;
@@ -28,221 +14,199 @@ interface Drawing {
 }
 
 export default function WallPage() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [drawings, setDrawings] = useState<Drawing[]>([]);
-  const [status, setStatus] = useState<string>("");
   const [fetchError, setFetchError] = useState<string | null>(null);
-
-  const fetchRecentDrawings = async () => {
-    const { data, error } = await supabase
-      .from("drawings")
-      .select("image_data, created_at")
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    if (error) {
-      console.error("Failed to fetch drawings:", error);
-      setFetchError("Couldn't load recent drawings. Try refreshing.");
-      return;
-    }
-    if (data) {
-      setFetchError(null);
-      setDrawings(data);
-    }
-  };
+  const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchRecentDrawings();
-  }, []);
+    const fetchRecentDrawings = async () => {
+      const { data, error } = await supabase
+        .from("drawings")
+        .select("image_data, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#0a0a0a";
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    let drawing = false;
-    let last = { x: 0, y: 0 };
-
-    function getPos(e: MouseEvent | TouchEvent) {
-      if (!canvas) return { x: 0, y: 0 };
-      const rect = canvas.getBoundingClientRect();
-      const clientX = "touches" in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-      const clientY = "touches" in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
-      return { x: clientX - rect.left, y: clientY - rect.top };
-    }
-
-    function start(e: MouseEvent | TouchEvent) { 
-      drawing = true; 
-      last = getPos(e);
-      if (e.cancelable && e.type === "touchstart") e.preventDefault();
-    }
-    
-    function move(e: MouseEvent | TouchEvent) {
-      if (!drawing || !ctx) return;
-      const p = getPos(e);
-      ctx.beginPath();
-      ctx.moveTo(last.x, last.y);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-      last = p;
-      if (e.cancelable && e.type === "touchmove") e.preventDefault();
-    }
-    
-    function stop() { 
-      drawing = false; 
-    }
-
-    canvas.addEventListener("mousedown", start);
-    canvas.addEventListener("mousemove", move);
-    canvas.addEventListener("mouseup", stop);
-    canvas.addEventListener("mouseleave", stop);
-    canvas.addEventListener("touchstart", start as unknown as EventListener, { passive: false });
-    canvas.addEventListener("touchmove", move as unknown as EventListener, { passive: false });
-    canvas.addEventListener("touchend", stop);
-
-    return () => {
-      canvas.removeEventListener("mousedown", start);
-      canvas.removeEventListener("mousemove", move);
-      canvas.removeEventListener("mouseup", stop);
-      canvas.removeEventListener("mouseleave", stop);
-      canvas.removeEventListener("touchstart", start as unknown as EventListener);
-      canvas.removeEventListener("touchmove", move as unknown as EventListener);
-      canvas.removeEventListener("touchend", stop);
+      if (error) {
+        console.error("Failed to fetch drawings:", error);
+        setFetchError("Couldn't load the wall. Try refreshing.");
+        return;
+      }
+      if (data) {
+        setFetchError(null);
+        setDrawings(data);
+      }
     };
+    fetchRecentDrawings();
   }, []);
 
-  const handleClear = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setStatus("");
-  };
+  useGSAP(() => {
+    // Headline animation matching main site
+    gsap.from(".headline", {
+      clipPath: "inset(100% 0 0 0)",
+      duration: 0.9,
+      ease: "power4.out",
+      stagger: 0.1,
+    });
+    
+    // Grid items animation
+    gsap.from(".gallery-item", {
+      opacity: 0,
+      y: 40,
+      duration: 0.8,
+      stagger: 0.05,
+      ease: "power3.out",
+      delay: 0.4
+    });
+  }, { scope: containerRef });
 
-  const handleSubmit = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    if (isCanvasBlank(canvas)) {
-      setStatus("Draw something first.");
-      return;
-    }
-
-    if (!canSubmit(getLastSubmitTimestamp())) {
-      setStatus("You can submit again in a minute.");
-      return;
-    }
-
-    setStatus("Submitting...");
-    const imageData = canvas.toDataURL("image/png");
-
-    if (!isSafeImageDataUrl(imageData)) {
-      setStatus("Invalid image data — try again.");
-      setTimeout(() => setStatus(""), 4000);
-      return;
-    }
-
-    const fingerprint = getOrCreateFingerprint();
-
-    const { error } = await supabase
-      .from("drawings")
-      .insert({ image_data: imageData, client_fingerprint: fingerprint });
-
-    if (error) {
-      setStatus("Something went wrong, try again.");
-      setTimeout(() => setStatus(""), 4000);
-      return;
-    }
-
-    recordSubmit();
-    setStatus("Submitted successfully.");
-    fetchRecentDrawings();
-
-    // Clear canvas
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    setTimeout(() => setStatus(""), 3000);
+  const handleDownload = (drawing: Drawing) => {
+    const link = document.createElement("a");
+    link.download = `visitor-mark-${new Date(drawing.created_at).getTime()}.png`;
+    link.href = drawing.image_data;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-white dark:bg-[#0A0A0A] text-[#0A0A0A] dark:text-[#E5E5E5] transition-colors duration-400">
-      <div className="max-w-4xl w-full flex flex-col items-center gap-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-medium tracking-tight mb-2">leave your mark</h1>
-          <p className="text-sm opacity-60">Draw something and submit it to the wall.</p>
-        </div>
+    <main 
+      ref={containerRef}
+      className="w-full max-w-full overflow-x-clip min-h-screen bg-background text-foreground font-sans selection:bg-foreground selection:text-background p-6 md:p-12 pb-24"
+    >
+      {/* Navigation matching main site brutalism */}
+      <nav className="w-full flex justify-between items-start pb-16 md:pb-24 text-[10px] md:text-xs font-mono tracking-widest uppercase opacity-80">
+        <Link href="/" className="hover:opacity-60 transition-opacity">
+          [ 45 ]
+        </Link>
+        <Link href="/editor" className="hover:opacity-60 transition-opacity">
+          [ ADD DRAWING ]
+        </Link>
+      </nav>
 
-        <div className="flex flex-col items-center gap-4">
-          <canvas
-            ref={canvasRef}
-            width={280}
-            height={180}
-            className="border border-[#0A0A0A] dark:border-[#E5E5E5] rounded-sm touch-none bg-white cursor-crosshair"
-          />
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleClear}
-              className="text-sm font-medium opacity-60 hover:opacity-100 transition-opacity min-h-[44px] px-2"
+      {/* Hero matching main site's huge typography */}
+      <header className="w-full flex flex-col justify-start mb-24 md:mb-32">
+        <h1 className="text-[clamp(32px,11vw,160px)] font-black uppercase leading-[0.85] tracking-tighter w-full break-words">
+          <div className="headline">VISITOR</div>
+          <div className="headline">WALL</div>
+        </h1>
+      </header>
+
+      {/* Wall Gallery - Brutalist Grid with hairline borders */}
+      <section className="w-full border-t border-foreground/20">
+        {fetchError ? (
+          <p className="py-12 uppercase font-mono text-sm opacity-60">{fetchError}</p>
+        ) : drawings.length === 0 ? (
+          <div className="py-24 w-full flex flex-col md:flex-row justify-between items-center border-b border-foreground/20">
+            <h3 className="text-[clamp(24px,5vw,64px)] font-black uppercase tracking-tighter">NO DRAWINGS YET</h3>
+            <Link 
+              href="/editor" 
+              className="mt-6 md:mt-0 text-sm font-mono tracking-widest uppercase hover:opacity-60 transition-opacity"
             >
-              Clear
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="text-sm font-medium px-4 py-2 min-h-[44px] border border-[#0A0A0A] dark:border-[#E5E5E5] rounded-sm hover:bg-[#0A0A0A] hover:text-[#E5E5E5] dark:hover:bg-[#E5E5E5] dark:hover:text-[#0A0A0A] transition-colors"
-            >
-              Submit
-            </button>
+              [ START DRAWING ]
+            </Link>
           </div>
-          {status && <p className="text-xs opacity-80 h-4">{status}</p>}
-        </div>
-
-        <div className="w-full mt-12">
-          <h2 className="text-sm font-medium mb-4 opacity-60 text-center">Last 10 drawings</h2>
-          {fetchError ? (
-            <p className="text-xs text-center opacity-60">{fetchError}</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {drawings.map((drawing, i) => (
-                <div key={i} className="aspect-[280/180] w-full border border-black/10 dark:border-white/10 rounded-sm overflow-hidden bg-white">
-                  {isSafeImageDataUrl(drawing.image_data) ? (
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-0 border-l border-foreground/20">
+            {drawings.map((drawing, i) => (
+              <button 
+                key={i} 
+                onClick={() => isSafeImageDataUrl(drawing.image_data) && setSelectedDrawing(drawing)}
+                className="gallery-item relative aspect-square border-r border-b border-foreground/20 bg-background overflow-hidden group cursor-pointer focus-visible:outline-none focus-visible:bg-foreground/5 text-left w-full h-full"
+              >
+                {isSafeImageDataUrl(drawing.image_data) ? (
+                  <div className="w-full h-full p-8 flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-500 bg-foreground/5 group-hover:bg-foreground/10">
                     <img
                       src={drawing.image_data}
-                      alt={`Drawing ${i + 1}`}
-                      className="w-full h-full object-cover"
+                      alt="A visitor's drawing"
+                      className="w-full h-auto object-contain dark:invert mix-blend-multiply dark:mix-blend-screen scale-90 group-hover:scale-100 transition-transform duration-500 ease-out pointer-events-none"
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs opacity-40">
-                      Unable to display
-                    </div>
-                  )}
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center opacity-30 text-xs font-mono uppercase tracking-widest">
+                    ERROR
+                  </div>
+                )}
+                {/* Brutalist meta labels */}
+                <div className="absolute top-4 left-4 mix-blend-difference pointer-events-none">
+                  <p className="text-[10px] font-mono tracking-widest uppercase text-white/50 group-hover:text-white transition-colors duration-300">
+                    {new Date(drawing.created_at).toLocaleDateString(undefined, { 
+                      month: '2-digit', 
+                      day: '2-digit',
+                      year: '2-digit'
+                    }).replace(/\//g, '.')}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mix-blend-difference pointer-events-none">
+                  <span className="text-[10px] font-mono tracking-widest uppercase text-white">[{String(i + 1).padStart(2, '0')}]</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
 
-        <Link
-          href="/"
-          className="mt-12 text-xs font-medium opacity-40 hover:opacity-100 transition-opacity min-h-[44px] flex items-center justify-center"
+      {/* Footer CTA mirroring the main site's Let's Work Together */}
+      {drawings.length > 0 && (
+        <section className="w-full mt-32 md:mt-48 flex justify-end">
+          <Link 
+            href="/editor" 
+            className="group focus-visible:outline-none block"
+          >
+            <h2 className="text-[clamp(36px,11vw,160px)] font-black uppercase leading-[0.75] tracking-tighter text-right group-hover:opacity-70 transition-opacity">
+              ADD<br />YOUR<br />MARK
+            </h2>
+          </Link>
+        </section>
+      )}
+
+      {/* Lightbox Modal */}
+      {selectedDrawing && (
+        <div 
+          className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-md"
+          onClick={() => setSelectedDrawing(null)}
         >
-          Return to surface
-        </Link>
-      </div>
+          {/* Top Bar */}
+          <div className="w-full flex justify-between items-center p-6 md:p-12 absolute top-0 left-0 z-10 pointer-events-none">
+            <div className="text-[10px] md:text-xs font-mono tracking-widest uppercase opacity-80 pointer-events-auto">
+              [ {new Date(selectedDrawing.created_at).toLocaleDateString(undefined, { 
+                  month: '2-digit', 
+                  day: '2-digit',
+                  year: 'numeric'
+                }).replace(/\//g, '.')} ]
+            </div>
+            <div className="flex gap-6 md:gap-12 pointer-events-auto">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload(selectedDrawing);
+                }}
+                className="text-[10px] md:text-xs font-mono tracking-widest uppercase hover:opacity-60 transition-opacity"
+              >
+                [ DOWNLOAD PNG ]
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedDrawing(null);
+                }}
+                className="text-[10px] md:text-xs font-mono tracking-widest uppercase hover:opacity-60 transition-opacity"
+              >
+                [ CLOSE ]
+              </button>
+            </div>
+          </div>
+          
+          {/* Main Image */}
+          <div className="flex-1 w-full h-full p-12 md:p-24 flex items-center justify-center">
+            <img 
+              src={selectedDrawing.image_data} 
+              alt="Enlarged drawing"
+              className="max-w-[90vw] max-h-[80vh] object-contain dark:invert mix-blend-multiply dark:mix-blend-screen animate-in fade-in zoom-in-95 duration-300 pointer-events-none"
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 }
