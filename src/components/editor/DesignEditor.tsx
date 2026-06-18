@@ -265,9 +265,10 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
     }
 
     // Freehand line — use current active colors
-    if (activeTool === "line") {
+    if (activeTool.startsWith("line")) {
       const { stroke, strokeWidth } = activeColorsRef.current;
       const id = uid();
+      const brushStyle = activeTool === "line" ? "brush" : activeTool.split("-")[1];
       const line: Shape = {
         id,
         type: "line",
@@ -283,6 +284,7 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
         visible: true,
         points: [pos.x, pos.y],
         tension: 0.4,
+        brushStyle: brushStyle as "brush" | "pen" | "marker",
       };
       setCurrentLine(line);
       setIsDrawing(true);
@@ -421,10 +423,11 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
     rect: "crosshair",
     ellipse: "crosshair",
     line: "crosshair",
+    "line-pen": "crosshair",
+    "line-marker": "crosshair",
     text: "text",
     "stamp-star": "crosshair",
     "stamp-arrow": "crosshair",
-    "stamp-barcode": "crosshair",
   };
 
   return (
@@ -516,7 +519,11 @@ const DesignEditor = forwardRef<EditorHandle>(function DesignEditor(_, ref) {
               {/* Live freehand preview */}
               {currentLine && (
                 <Path
-                  data={getFreehandPath(currentLine.points ?? [], currentLine.strokeWidth || 4)}
+                  data={getFreehandPath(
+                    currentLine.points ?? [],
+                    currentLine.strokeWidth,
+                    currentLine.brushStyle ?? "brush"
+                  )}
                   fill={currentLine.stroke}
                   listening={false}
                 />

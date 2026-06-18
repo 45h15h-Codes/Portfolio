@@ -8,6 +8,7 @@ type Cursor = {
   x: number;
   y: number;
   color: string;
+  lastSeen?: number;
 };
 
 const COLORS = ["#FF3366", "#33FF66", "#3366FF", "#FF33FF", "#33FFFF", "#FFCC33"];
@@ -70,7 +71,7 @@ export function LiveCursors() {
         const next = { ...prev };
         let changed = false;
         for (const id in next) {
-          if (now - (next[id] as any).lastSeen > 3000) {
+          if (next[id].lastSeen && now - next[id].lastSeen > 3000) {
             delete next[id];
             changed = true;
           }

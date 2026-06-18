@@ -89,11 +89,11 @@ export function Work() {
   return (
     <section id="work" ref={containerRef} className="w-full px-6 md:px-12 py-24 md:py-32 relative">
       {/* Header section */}
-      <div className="w-full flex justify-center items-center mb-16 md:mb-24 relative">
-        <div className="absolute top-0 left-0 text-[10px] md:text-xs font-semibold uppercase tracking-widest text-foreground/50 mt-2 md:mt-4">
+      <div className="w-full flex flex-col md:block mb-16 md:mb-24 relative">
+        <div className="md:absolute md:top-0 md:left-0 text-[10px] md:text-xs font-semibold uppercase tracking-widest text-foreground/50 mb-2 md:mb-0 md:mt-4">
           / SELECTED
         </div>
-        <h2 className="text-[14vw] md:text-[9vw] font-black uppercase tracking-tighter leading-none mx-auto text-foreground">
+        <h2 className="text-[14vw] md:text-[9vw] font-black uppercase tracking-tighter leading-none md:mx-auto text-foreground md:text-center">
           RECENT WORK
         </h2>
       </div>

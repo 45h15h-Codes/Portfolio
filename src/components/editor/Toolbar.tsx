@@ -160,11 +160,12 @@ const TOOLS: { id: ActiveTool; label: string; icon: string }[] = [
   { id: "select", label: "Select", icon: "↖" },
   { id: "rect",   label: "Rect",   icon: "▭" },
   { id: "ellipse",label: "Ellipse",icon: "◯" },
-  { id: "line",   label: "Pen",    icon: "✏" },
+  { id: "line",   label: "Brush",  icon: "🖌" },
+  { id: "line-pen", label: "Pen",  icon: "✏" },
+  { id: "line-marker", label: "Marker", icon: "🖍" },
   { id: "text",   label: "Text",   icon: "T" },
   { id: "stamp-star", label: "Star", icon: "★" },
   { id: "stamp-arrow", label: "Arrow", icon: "➔" },
-  { id: "stamp-barcode", label: "Code", icon: "|||" },
 ];
 
 export interface ToolbarProps {

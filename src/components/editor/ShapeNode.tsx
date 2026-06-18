@@ -81,7 +81,7 @@ export function ShapeNode({ shape, onSelect, onChange }: Props) {
       return (
         <Path
           {...commonProps}
-          data={getFreehandPath(shape.points ?? [], shape.strokeWidth || 4)}
+          data={getFreehandPath(shape.points ?? [], shape.strokeWidth || 4, shape.brushStyle ?? "brush")}
           fill={shape.stroke || shape.fill}
           // no stroke because the path itself is a filled polygon
           onTransformEnd={undefined}

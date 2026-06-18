@@ -101,6 +101,9 @@ export function Contact() {
         });
       }
 
+      // Recalculate trigger positions after SplitType + char wrapping changed DOM
+      ScrollTrigger.refresh();
+
       return () => {
         headlineText.revert();
       };
@@ -130,7 +133,7 @@ export function Contact() {
         </a>
       </div>
 
-      <div className="social-container w-full flex flex-col md:flex-row justify-between items-end border-t border-current/10 pt-8 md:pt-12 mt-auto relative z-10">
+      <div className="social-container w-full flex flex-col md:flex-row justify-between items-end border-t border-current/10 pt-8 md:pt-12 pb-24 md:pb-0 mt-auto relative z-10">
         <div className="flex flex-col md:flex-row gap-8 md:gap-24 w-full md:w-auto mb-8 md:mb-0 text-left">
           <div className="flex flex-col gap-4 text-sm md:text-base font-medium uppercase tracking-widest">
             {/* <a

@@ -9,8 +9,11 @@ export function CustomCursor() {
     const cursor = cursorRef.current;
     if (!cursor) return;
 
-    // Respect OS-level reduced-motion preference — let the system cursor take over
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    // Respect OS-level reduced-motion preference and ignore on touch devices
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      window.matchMedia("(hover: none) and (pointer: coarse)").matches
+    ) {
       cursor.style.display = "none";
       return;
     }
@@ -49,9 +52,13 @@ export function CustomCursor() {
 
     addListeners();
 
-    // Observe DOM changes to attach listeners to new links
+    // Observe DOM changes to attach listeners to new links with debounce
+    let debounceTimer: ReturnType<typeof setTimeout>;
     const observer = new MutationObserver(() => {
-      addListeners();
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        addListeners();
+      }, 150);
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
@@ -62,6 +69,7 @@ export function CustomCursor() {
         link.removeEventListener("mouseleave", handleMouseLeave);
       });
       observer.disconnect();
+      clearTimeout(debounceTimer);
     };
   }, []);
 

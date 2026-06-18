@@ -61,6 +61,9 @@ export function About() {
       ease: "power2.out",
     });
 
+    // Recalculate trigger positions after SplitType changed DOM layout
+    ScrollTrigger.refresh();
+
     return () => {
       text.revert();
     };

@@ -19,10 +19,11 @@ export interface Shape {
   // line/path only
   points?: number[];
   tension?: number;
+  brushStyle?: "brush" | "pen" | "marker";
   // stamp only
   stampType?: string;
   // image only
   imageSrc?: string;
 }
 
-export type ActiveTool = "select" | "rect" | "ellipse" | "line" | "text" | "stamp-star" | "stamp-arrow" | "stamp-barcode";
+export type ActiveTool = "select" | "rect" | "ellipse" | "line" | "line-pen" | "line-marker" | "text" | "stamp-star" | "stamp-arrow";
