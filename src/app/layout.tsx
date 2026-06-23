@@ -6,6 +6,7 @@ import { CustomCursor } from "@/components/CustomCursor";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { KonamiListener } from "@/components/KonamiListener";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -40,6 +41,7 @@ export default function RootLayout({
           <KonamiListener />
           <SmoothScroll>{children}</SmoothScroll>
           <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>
